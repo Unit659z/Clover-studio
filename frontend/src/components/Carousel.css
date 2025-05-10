@@ -1,0 +1,66 @@
+/* src/components/Carousel.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Общие стили для ЛЮБОЙ кастомной стрелки "назад" или "вперед" */
+.swiper-button-prev-custom,
+.swiper-button-next-custom {
+  @apply absolute top-1/2 -translate-y-[2.5rem] z-10 cursor-pointer
+         w-10 h-10 rounded-full bg-[#EB0000] bg-opacity-100 hover:bg-opacity-70
+         flex items-center justify-center text-white transition-opacity duration-1000;
+        
+}
+
+/* Позиционирование стрелок ОТНОСИТЕЛЬНО РОДИТЕЛЯ С PADDING ('.relative.px-10') */
+.swiper-button-prev-custom {
+    /* @apply left-0; */
+    @apply left-[-1rem] md:left-[-1.5rem]; /* Используем отрицательные значения */
+  }
+  
+  .swiper-button-next-custom {
+    /* @apply right-0; */
+     @apply right-[-1rem] md:right-[-1.5rem]; /* Используем отрицательные значения */
+  }
+
+/* Иконки внутри стрелок */
+.swiper-button-prev-custom::after,
+.swiper-button-next-custom::after {
+  font-family: swiper-icons;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.swiper-button-prev-custom::after {
+  content: 'prev';
+}
+
+.swiper-button-next-custom::after {
+  content: 'next';
+}
+
+/* Стили для неактивных стрелок (Swiper добавит класс swiper-button-disabled к уникальному классу) */
+/* Мы не можем напрямую стилизовать по swiper-button-disabled, т.к. он на другом элементе */
+/* Но Swiper не будет рендерить кнопку, если навигация отключена в коде (showNavigation=false) */
+
+/* Стилизация контейнера для точек */
+.swiper-pagination-custom-container {
+  @apply absolute bottom-0 left-0 right-0 flex justify-center items-center space-x-2 z-10 pb-2; /* Добавили pb-2 */
+}
+
+/* Стилизация отдельной точки пагинации (общий класс) */
+.swiper-pagination-bullet-custom {
+  @apply w-2.5 h-2.5 rounded-full bg-gray-500 opacity-50 cursor-pointer
+         transition-all duration-300 hover:opacity-100;
+}
+
+/* Стилизация активной точки пагинации (общий класс) */
+.swiper-pagination-bullet-active-custom {
+  @apply opacity-100 bg-[#EB0000] scale-125;
+}
+
+/* Убираем стандартные элементы Swiper */
+.swiper-button-next, .swiper-button-prev, .swiper-pagination {
+    display: none !important;
+}
