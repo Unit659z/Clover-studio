@@ -710,8 +710,12 @@ class ServiceAdmin(admin.ModelAdmin):
 
     @admin.action(description="Показать количество заказов для выбранных услуг")
     def show_service_order_count(self, request, queryset): 
-        annotated = queryset.annotate(order_count=Count('orders'))
-        message = "Количество заказов:\n" + "\n".join([f"- {service.name}: {service.order_count}" for service in annotated])
+        annotated_queryset = queryset.annotate(order_count=Count('orders', distinct=True))
+        message_lines = ["Количество заказов для выбранных услуг:"]
+        for service in annotated_queryset:
+            message_lines.append(f"- {service.name}: {service.order_count}")
+
+        message = "\n".join(message_lines)
         self.message_user(request, message, level='info')
 
     @admin.action(description="Показать кол-во услуг с ценой >= 30000")
