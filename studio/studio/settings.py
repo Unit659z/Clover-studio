@@ -1,14 +1,13 @@
-"""
-Django settings for studio project.
-... (остальные импорты и BASE_DIR) ...
-"""
 import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-13vj1eqs^@^jrx6a*m0l9kv-r04_%ubaqof=271u9r2=@vvr!c'
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    ]
 
 INSTALLED_APPS = [ 
     'django.contrib.admin',
@@ -67,6 +66,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:8000',
 ]
 
 AUTHENTICATION_BACKENDS = [

@@ -1,5 +1,3 @@
-# --- START OF FILE app_studio/models.py ---
-
 from datetime import timedelta
 from django.contrib.auth.models import AbstractUser
 from django.db import models

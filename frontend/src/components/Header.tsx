@@ -45,7 +45,7 @@ const Header: React.FC = () => {
   // Закрытие меню при изменении маршрута
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [location.pathname]); 
+  }, [location.pathname]);
 
   return (
     <header className="bg-[#181818] text-gray-300 sticky top-0 z-50 shadow-md">
@@ -53,8 +53,8 @@ const Header: React.FC = () => {
         {/* Logo */}
         <Link
           to="/"
-          className="text-xl sm:text-2xl font-bold text-white flex items-center" 
-          onClick={() => setIsMobileMenuOpen(false)} 
+          className="text-xl sm:text-2xl font-bold text-white flex items-center"
+          onClick={() => setIsMobileMenuOpen(false)}
         >
           <img
             src="/images/clover.png"

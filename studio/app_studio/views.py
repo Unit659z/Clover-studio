@@ -339,7 +339,7 @@ class NewsViewSet(viewsets.ModelViewSet):
         """ Устанавливаем текущего пользователя (админа) как автора новости. """
         serializer.save(author=self.request.user)
 
-class PortfolioViewSet(viewsets.ModelViewSet): # !!! Меняем на ModelViewSet !!!
+class PortfolioViewSet(viewsets.ModelViewSet): 
      """ API для Портфолио (CRUD для владельца/админа, чтение для всех). """
      queryset = Portfolio.objects.select_related('executor__user').all().order_by('-uploaded_at')
      serializer_class = PortfolioSerializer
