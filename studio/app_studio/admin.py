@@ -241,16 +241,35 @@ class CustomUserAdmin(BaseUserAdmin):
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('Контактная информация и Аватар', {'fields': ('phone_number', 'first_name', 'last_name', 'email', 'avatar')}),
     )
-    list_select_related = ('executor_profile',)
     readonly_fields = ('last_login', 'date_joined', 'avatar_thumbnail')
+    list_select_related = ('executor_profile',)
+    actions = [
+        'show_active_user_emails_values_list_action',
+        'check_if_superuser_exists_action'
+    ]
 
     @admin.display(description='Аватар')
-    def avatar_thumbnail(self, obj):
-        return image_thumbnail(obj.avatar, width=40) # Маленькая миниатюра
-
+    def avatar_thumbnail(self, obj): return image_thumbnail(obj.avatar, width=40)
     @admin.display(description='Исполнитель?', boolean=True)
-    def is_executor_display(self, obj):
-        return hasattr(obj, 'executor_profile') and obj.executor_profile is not None
+    def is_executor_display(self, obj): return hasattr(obj, 'executor_profile') and obj.executor_profile is not None
+
+    @admin.action(description="Email активных выбранных пользователей (values_list)")
+    def show_active_user_emails_values_list_action(self, request, queryset):
+        active_users_emails = queryset.filter(is_active=True).values_list('email', flat=True)
+        active_emails_list = [email for email in active_users_emails if email] # Убираем None или пустые строки
+        if active_emails_list:
+            message = "Email выбранных активных пользователей:\n" + "\n".join(active_emails_list)
+        else:
+            message = "Нет активных пользователей с email среди выбранных."
+        self.message_user(request, message, level='info')
+
+    @admin.action(description="Проверить, есть ли суперюзеры в системе (exists)")
+    def check_if_superuser_exists_action(self, request, queryset):
+        if CustomUser.objects.filter(is_superuser=True).exists():
+            message = "В системе есть как минимум один суперпользователь."
+        else:
+            message = "В системе нет суперпользователей."
+        self.message_user(request, message, level='info')
 
 @admin.register(Executor)
 class ExecutorAdmin(admin.ModelAdmin):
@@ -518,36 +537,27 @@ class NewsAdmin(admin.ModelAdmin):
     raw_id_fields = ('author',)
     autocomplete_fields = ['author']
     readonly_fields = ('published_at', 'pk', 'author_link', 'pdf_link_display')
-    actions = ['generate_news_pdf_action']
+    actions = ['generate_news_pdf_action', 'find_news_with_exact_case_word_action']
     list_per_page = 20
     list_select_related = ('author',)
     fieldsets = (
         (None, {'fields': ('title', 'content')}),
-        ('Метаданные', {'fields': ('author', 'pdf_file', 'pdf_link_display', 'published_at')}), # pdf_link_display для наглядности
+        ('Метаданные', {'fields': ('author', 'pdf_file', 'pdf_link_display', 'published_at')}),
     )
-
     @admin.display(description='Автор', ordering='author__username')
     def author_link(self, obj):
         if obj.author:
-            try:
-                link = reverse("admin:app_studio_customuser_change", args=[obj.author.pk])
-                return format_html('<a href="{}">{}</a>', link, obj.author.username)
+            try: return format_html('<a href="{}">{}</a>', reverse("admin:app_studio_customuser_change", args=[obj.author.pk]), obj.author.username)
             except NoReverseMatch: return obj.author.username
         return "Автор не указан/удален"
-
     @admin.display(description='PDF файл')
     def pdf_link_display(self, obj):
-        if obj.pdf_file:
-             # Добавляет ссылку на сам файл и на его страницу в админке
-             file_url = obj.pdf_file.url
-             return format_html('<a href="{}" target="_blank">Скачать/Просмотреть</a>', file_url)
+        if obj.pdf_file: return format_html('<a href="{}" target="_blank">Скачать/Просмотреть</a>', obj.pdf_file.url)
         return "Нет файла"
-
     @admin.display(description='Начало текста')
     def content_preview(self, obj):
         return (obj.content[:100] + '...') if obj.content and len(obj.content) > 100 else obj.content
-
-    @admin.action(description='Сгенерировать PDF и (если выбрана 1) сохранить в поле')
+    @admin.action(description='Сгенерировать PDF и (если 1) сохранить')
     def generate_news_pdf_action(self, request, queryset):
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
@@ -555,62 +565,42 @@ class NewsAdmin(admin.ModelAdmin):
         styles['Normal'].fontName = 'DejaVuSans'; styles['Normal'].fontSize = 11; styles['Normal'].leading = 14; styles['Normal'].alignment = TA_JUSTIFY
         styles['Heading1'].fontName = 'DejaVuSans'; styles['Heading1'].fontSize = 16; styles['Heading1'].alignment = TA_CENTER; styles['Heading1'].spaceAfter = 0.5*cm
         styles['Heading2'].fontName = 'DejaVuSans'; styles['Heading2'].fontSize = 14; styles['Heading2'].spaceBefore = 0.5*cm; styles['Heading2'].spaceAfter = 0.3*cm
-
-        story = []
-        if queryset.count() == 1:
-            news_item = queryset.first()
-            story.append(Paragraph(f"Новость: {news_item.title}", styles['h1']))
-        else:
-            story.append(Paragraph("Дайджест новостей", styles['h1']))
-
+        story = [Paragraph("Дайджест новостей" if queryset.count() > 1 else f"Новость: {queryset.first().title}", styles['h1'])]
         for news in queryset.select_related('author'):
-            author_name = news.author.username if news.author else "Неизвестный автор"
-            pub_date = news.published_at.strftime('%d.%m.%Y') if news.published_at else "-"
-            story.append(Paragraph(news.title, styles['h2']))
-            story.append(Paragraph(f"<i>Автор: {author_name}, Опубликовано: {pub_date}</i>", styles['Normal']))
-            story.append(Spacer(1, 0.2*cm))
-            content_paragraphs = news.content.split('\n')
-            for paragraph_text in content_paragraphs:
-                if paragraph_text.strip():
-                    story.append(Paragraph(paragraph_text, styles['Normal']))
+            story.extend([
+                Paragraph(news.title, styles['h2']),
+                Paragraph(f"<i>Автор: {news.author.username if news.author else 'Неизвестный автор'}, Опубликовано: {news.published_at.strftime('%d.%m.%Y') if news.published_at else '-'}</i>", styles['Normal']),
+                Spacer(1, 0.2*cm)
+            ])
+            for paragraph_text in news.content.split('\n'):
+                if paragraph_text.strip(): story.append(Paragraph(paragraph_text, styles['Normal']))
             story.append(Spacer(1, 0.8*cm))
-
-        try:
-            doc.build(story)
-        except Exception as e:
-            self.message_user(request, f"Ошибка генерации PDF: {e}", level='error')
-            return HttpResponse(f"Ошибка генерации PDF: {e}", status=500)
-
-        pdf_content = buffer.getvalue()
-        buffer.close()
-
-        # Сохраняет файл, если выбрана только одна новость
+        try: doc.build(story)
+        except Exception as e: self.message_user(request, f"Ошибка генерации PDF: {e}", level='error'); return
+        pdf_content = buffer.getvalue(); buffer.close()
         if queryset.count() == 1:
             news_item = queryset.first()
             try:
-                # Генерирует имя файла
-                timestamp = int(time.time())
-                filename = f"news_{news_item.pk}_{timestamp}.pdf"
-                pdf_file_obj = ContentFile(pdf_content, name=filename)
-                # Присваивает полю и сохраняет модель
-                news_item.pdf_file = pdf_file_obj
-                news_item.save(update_fields=['pdf_file']) # Обновляет только это поле
-                self.message_user(request, f"PDF для новости '{news_item.title}' успешно сгенерирован и сохранен.", level='success')
-            except Exception as e:
-                self.message_user(request, f"PDF сгенерирован, но произошла ошибка при сохранении файла для новости '{news_item.title}': {e}", level='warning')
-        elif queryset.count() > 1:
-             self.message_user(request, f"PDF-дайджест для {queryset.count()} новостей сгенерирован (файл не сохранен в базу).", level='info')
-        else:
-             # на всякий случай
-             self.message_user(request, "Не выбрано ни одной новости.", level='warning')
-             return # не отдаем пустой PDF
-
-        # Отдает PDF пользователю
+                filename = f"news_{news_item.pk}_{int(time.time())}.pdf"
+                news_item.pdf_file.save(filename, ContentFile(pdf_content), save=True)
+                self.message_user(request, f"PDF для новости '{news_item.title}' сгенерирован и сохранен.", level='success')
+            except Exception as e: self.message_user(request, f"PDF сгенерирован, ошибка сохранения: {e}", level='warning')
+        elif queryset.count() > 1: self.message_user(request, f"PDF-дайджест для {queryset.count()} новостей сгенерирован.", level='info')
+        else: self.message_user(request, "Не выбрано новостей.", level='warning'); return
         response = HttpResponse(pdf_content, content_type='application/pdf')
-        # Генерирует имя файла для скачивания
-        download_filename = "news_report.pdf" if queryset.count() > 1 else f"news_{queryset.first().pk}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{download_filename}"'
+        response['Content-Disposition'] = f'attachment; filename="{"news_report.pdf" if queryset.count() > 1 else f"news_{queryset.first().pk}.pdf"}"'
         return response
+
+    @admin.action(description="Найти новости со словом 'Django' (регистрозависимо, __contains)")
+    def find_news_with_exact_case_word_action(self, request, queryset):
+        news_with_word = queryset.filter(title__contains='Django') # <-- Использование __contains
+        if news_with_word.exists():
+            titles = news_with_word.values_list('title', flat=True)
+            message = "Новости, содержащие 'Django' (с учетом регистра) в заголовке:\n" + "\n".join(titles)
+            self.message_user(request, message, level='info')
+        else:
+            self.message_user(request, "Не найдено новостей с точным вхождением 'Django' в заголовке среди выбранных.", level='info')
+
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
@@ -671,59 +661,54 @@ class ServiceAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
     readonly_fields = ('created_at', 'pk', 'thumbnail', 'order_count_display', 'executor_count_display', 'total_cost_display')
     inlines = [CostCalculatorInline]
-    actions = ['show_service_order_count', 'show_expensive_service_count']
+    actions = [
+        'show_service_order_count', 
+        'show_expensive_service_count',
+        'show_service_names_prices_values_action'
+        ]
     list_per_page = 20
-    list_select_related = ('cost_calculator',) # для total_cost_display
+    list_select_related = ('cost_calculator',)
     fieldsets = (
         (None, {'fields': ('name', 'description', 'price', 'duration_hours')}),
         ('Изображение', {'fields': ('photo', 'thumbnail')}),
         ('Метаданные', {'classes': ('collapse',), 'fields': ('created_at',)}),
     )
-
     def get_queryset(self, request):
-        qs = super().get_queryset(request).select_related('cost_calculator')
-        qs = qs.annotate(
+        return super().get_queryset(request).select_related('cost_calculator').annotate(
             order_count_annotated=Count('orders', distinct=True),
             executor_count_annotated=Count('executors', distinct=True)
         )
-        return qs
-
     @admin.display(description='Миниатюра')
-    def thumbnail(self, obj):
-        return image_thumbnail(obj.photo, width=80)
-
+    def thumbnail(self, obj): return image_thumbnail(obj.photo, width=80)
     @admin.display(description='Итоговая цена', ordering='cost_calculator__total_cost')
     def total_cost_display(self, obj):
-        if hasattr(obj, 'cost_calculator') and obj.cost_calculator:
-            return f"{obj.cost_calculator.total_cost} руб."
-        elif obj.price is not None:
-             return f"{obj.price} руб. (базовая)"
-        return "N/A"
-
+        if hasattr(obj, 'cost_calculator') and obj.cost_calculator: return f"{obj.cost_calculator.total_cost} руб."
+        return f"{obj.price} руб. (базовая)" if obj.price is not None else "N/A"
     @admin.display(description='Кол-во заказов', ordering='order_count_annotated')
-    def order_count_display(self, obj): 
-        return obj.order_count_annotated
-
+    def order_count_display(self, obj): return obj.order_count_annotated
     @admin.display(description='Кол-во исполнителей', ordering='executor_count_annotated')
-    def executor_count_display(self, obj): 
-        return obj.executor_count_annotated
-
+    def executor_count_display(self, obj): return obj.executor_count_annotated
     @admin.action(description="Показать количество заказов для выбранных услуг")
     def show_service_order_count(self, request, queryset): 
-        annotated_queryset = queryset.annotate(order_count=Count('orders', distinct=True))
         message_lines = ["Количество заказов для выбранных услуг:"]
-        for service in annotated_queryset:
+        for service in queryset.annotate(order_count=Count('orders', distinct=True)):
             message_lines.append(f"- {service.name}: {service.order_count}")
-
-        message = "\n".join(message_lines)
-        self.message_user(request, message, level='info')
-
+        self.message_user(request, "\n".join(message_lines), level='info')
     @admin.action(description="Показать кол-во услуг с ценой >= 30000")
     def show_expensive_service_count(self, request, queryset): 
-        expensive_qs = queryset.expensive_services(30000) # Используем метод менеджера
-        count = expensive_qs.count()
-        message = f"Найдено услуг с ценой 30000 руб. или выше: {count}"
-        self.message_user(request, message, level='info')
+        count = queryset.expensive_services(30000).count()
+        self.message_user(request, f"Найдено услуг с ценой 30000 руб. или выше: {count}", level='info')
+    
+    @admin.action(description="Названия и цены выбранных услуг (values)")
+    def show_service_names_prices_values_action(self, request, queryset):
+        services_data = queryset.values('name', 'price') # <-- Использование values()
+        if services_data:
+            message_lines = ["Названия и цены выбранных услуг:"]
+            for service_dict in services_data:
+                message_lines.append(f"- {service_dict['name']}: {service_dict['price']} руб.")
+            self.message_user(request, "\n".join(message_lines), level='info')
+        else:
+            self.message_user(request, "Услуги не выбраны или не найдены.", level='warning')
 
 
 @admin.register(CostCalculator)

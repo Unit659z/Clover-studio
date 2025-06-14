@@ -42,15 +42,12 @@ class PasswordChangeView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        # Передаем request в контекст для доступа к user в validate_old_password
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        # Устанавливаем новый пароль (сериализатор уже проверил совпадение и валидность)
         user.set_password(serializer.validated_data['new_password1'])
         user.save()
 
-        #Обновляем хэш сессии, чтобы пользователь не разлогинился 
         update_session_auth_hash(request, user)
 
         return Response({"detail": "Пароль успешно изменен."}, status=status.HTTP_200_OK)
@@ -69,19 +66,15 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Указываем путь к стандартному ModelBackend, его достаточно для сессии
         backend_path = 'django.contrib.auth.backends.ModelBackend'
 
-        # Проверяем, что бэкенд действительно есть в настройках (на всякий случай)
         from django.conf import settings
         if backend_path in settings.AUTHENTICATION_BACKENDS:
             user.backend = backend_path 
             django_login(request, user)
             print(f"User {user.username} automatically logged in after registration.")
         else:
-            # Если бэкенд не найден, логируем ошибку, но не ломаем запрос
             print(f"ERROR: Specified backend '{backend_path}' not found in AUTHENTICATION_BACKENDS. User not logged in.")
-            # Регистрация все равно прошла успешно, но без авто-логина
 
 
         user_data_serializer = UserSerializer(user, context=self.get_serializer_context())
@@ -95,8 +88,7 @@ class LoginView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Получаем один идентификатор (может быть username или email)
-        identifier = request.data.get('identifier') # Ожидаем ключ 'identifier' от фронта
+        identifier = request.data.get('identifier')
         password = request.data.get('password')
 
         if not identifier or not password:
@@ -105,11 +97,9 @@ class LoginView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Передаем идентификатор как username в authenticate.
         user = authenticate(request, username=identifier, password=password)
 
         if user is not None:
-            # Проверяем, активен ли пользователь (на всякий случай)
             if not user.is_active:
                  return Response(
                      {'detail': 'Аккаунт пользователя неактивен.'},
@@ -120,7 +110,6 @@ class LoginView(views.APIView):
             serializer = UserSerializer(user, context={'request': request})
             return Response(serializer.data)
         else:
-            # Пользователь не найден ИЛИ пароль неверный ИЛИ пользователь неактивен 
             return Response(
                 {'detail': 'Неверные учетные данные или аккаунт неактивен.'},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -131,7 +120,6 @@ class LogoutView(views.APIView):
     permission_classes = [permissions.IsAuthenticated] # Только залогиненные могут выйти
 
     def post(self, request, *args, **kwargs):
-        # Используем стандартный logout Django
         django_logout(request)
         return Response(
             {'detail': 'Выход выполнен успешно.'},
@@ -152,7 +140,6 @@ class SessionStatusView(views.APIView):
         serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
-# Оставляем UserProfileView для получения/обновления профиля
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """API для получения и обновления профиля текущего пользователя."""
     serializer_class = UserSerializer
@@ -173,9 +160,9 @@ class GetCSRFTokenView(views.APIView):
 
 # --- Стандартная Пагинация ---
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10 # Количество элементов на странице по умолчанию
-    page_size_query_param = 'page_size' # Параметр для указания кол-ва элементов ?page_size=20
-    max_page_size = 100 # Максимальное кол-во элементов на странице
+    page_size = 10 
+    page_size_query_param = 'page_size' 
+    max_page_size = 100 
 
 # --- API ViewSets ---
 class ServiceViewSet(viewsets.ModelViewSet):
@@ -251,7 +238,6 @@ class OrderViewSet(viewsets.ModelViewSet):
             'client', 'executor__user', 'service', 'status'
         ).filter(Q(client=user) | Q(executor__user=user)) # Q нужен для OR
 
-    # Переопределяем perform_create (убедимся что client устанавливается)
     def perform_create(self, serializer):
         serializer.save()
 
@@ -372,7 +358,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
      permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
      pagination_class = StandardResultsSetPagination
      filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-     filterset_fields = ['executor__id', 'order__id', 'rating', 'user__id'] # ?executor__id=1&rating=5
+     filterset_fields = ['executor__id', 'order__id', 'rating', 'user__id'] 
      ordering_fields = ['created_at', 'rating']
      ordering = ['-created_at']
 
@@ -412,8 +398,6 @@ class CartViewSet(mixins.RetrieveModelMixin, # Получить корзину (
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-    # retrieve работает из коробки через get_object
-
     @action(detail=False, methods=['post'], url_path='items', serializer_class=CartItemSerializer)
     def add_item(self, request):
         """Добавляет товар (услугу) в корзину или увеличивает количество."""
@@ -421,16 +405,13 @@ class CartViewSet(mixins.RetrieveModelMixin, # Получить корзину (
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # Получаем ID услуги из validated_data
-        service_id = serializer.validated_data.get('service_id') # Или может называться 'service' если source отработал
+        service_id = serializer.validated_data.get('service_id')
         if not service_id and 'service' in serializer.validated_data:
-            # Если ключ 'service' есть, но это ID, а не объект
              if isinstance(serializer.validated_data['service'], int):
                  service_id = serializer.validated_data['service']
-             # Если вдруг там объект Service 
              elif isinstance(serializer.validated_data['service'], Service):
                  service_id = serializer.validated_data['service'].pk
 
-        # Если service_id все еще не найден, это ошибка в запросе или сериализаторе
         if not service_id:
              service_id = request.data.get('service_id')
              if not service_id:
@@ -455,9 +436,9 @@ class CartViewSet(mixins.RetrieveModelMixin, # Получить корзину (
 
         if not created:
             # увеличиваем количество
-            cart_item.quantity = F('quantity') + quantity # Используем F
+            cart_item.quantity = F('quantity') + quantity 
             cart_item.save(update_fields=['quantity'])
-            cart_item.refresh_from_db() # Обновляем объект после F
+            cart_item.refresh_from_db() 
             cart.save()
             cart_serializer = CartSerializer(cart, context=self.get_serializer_context())
             return Response(cart_serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
@@ -475,23 +456,20 @@ class CartViewSet(mixins.RetrieveModelMixin, # Получить корзину (
         cart_item = get_object_or_404(CartItem, pk=item_pk, cart=cart)
 
         try:
-            # Пытаемся получить и преобразовать quantity
             new_quantity = int(request.data.get('quantity'))
             if new_quantity <= 0:
                 raise ValueError("Количество должно быть положительным.") 
 
             cart_item.quantity = new_quantity
-            cart_item.save(update_fields=['quantity']) # Обновляем только quantity
-            cart.save() # Обновляем updated_at корзины
+            cart_item.save(update_fields=['quantity']) 
+            cart.save()
 
             cart_serializer = CartSerializer(cart, context=self.get_serializer_context())
             return Response(cart_serializer.data)
 
         except (ValueError, TypeError, KeyError):
-            # Если quantity нет, не число или <= 0
              return Response({'quantity': 'Ожидается целое положительное число.'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             # Ловим другие возможные ошибки
              print(f"Error updating cart item quantity: {e}")
              return Response({'detail': 'Внутренняя ошибка сервера при обновлении количества.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -502,9 +480,9 @@ class CartViewSet(mixins.RetrieveModelMixin, # Получить корзину (
         cart_item = get_object_or_404(CartItem, pk=item_pk, cart=cart)
         cart_item.delete()
         cart.save()
-        return Response(status=status.HTTP_204_NO_CONTENT) # Успешное удаление
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=['delete'], url_path='clear') # Используем detail=False, работаем с корзиной текущего пользователя
+    @action(detail=False, methods=['delete'], url_path='clear')
     def clear_cart(self, request):
         """Очищает корзину пользователя."""
         cart = self.get_object()
@@ -531,7 +509,6 @@ class MessageViewSet(mixins.CreateModelMixin, # Создать (отправит
         user = self.request.user
         return Message.objects.filter(Q(sender=user) | Q(receiver=user)).select_related('sender', 'receiver')
 
-    # Можно добавить action для пометки сообщения как прочитанного
     @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_as_read(self, request, pk=None):
         message = self.get_object()
@@ -544,7 +521,7 @@ class MessageViewSet(mixins.CreateModelMixin, # Создать (отправит
              return Response({'detail': 'Вы не получатель этого сообщения.'}, status=status.HTTP_403_FORBIDDEN)
         else: # Уже прочитано
              serializer = self.get_serializer(message)
-             return Response(serializer.data) # Просто возвращаем данные
+             return Response(serializer.data) 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """API для получения и обновления профиля текущего пользователя."""
