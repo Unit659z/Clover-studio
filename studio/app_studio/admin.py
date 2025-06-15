@@ -227,13 +227,13 @@ class CartItemInline(admin.TabularInline):
 # --- Админ-классы для моделей ---
 @admin.register(CustomUser)
 class CustomUserAdmin(BaseUserAdmin):
-    list_display = ('username', 'email', 'get_full_name', 'phone_number', 'is_staff', 'is_active', 'date_joined', 'is_executor_display', 'avatar_thumbnail')
+    list_display = ('pk','username', 'email', 'get_full_name', 'phone_number', 'is_staff', 'is_active', 'date_joined', 'is_executor_display', 'avatar_thumbnail')
     list_display_links = ('username', 'email')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'phone_number')
+    search_fields = ('pk','username', 'email', 'first_name', 'last_name', 'phone_number')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined', ('executor_profile', admin.EmptyFieldListFilter))
     ordering = ('-date_joined',)
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
+        (None, {'fields': ('pk','username', 'password')}),
         ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'avatar')}),
         ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Важные даты', {'classes': ('collapse',), 'fields': ('last_login', 'date_joined')}),
@@ -241,7 +241,7 @@ class CustomUserAdmin(BaseUserAdmin):
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('Контактная информация и Аватар', {'fields': ('phone_number', 'first_name', 'last_name', 'email', 'avatar')}),
     )
-    readonly_fields = ('last_login', 'date_joined', 'avatar_thumbnail')
+    readonly_fields = ('pk','last_login', 'date_joined', 'avatar_thumbnail')
     list_select_related = ('executor_profile',)
     actions = [
         'show_active_user_emails_values_list_action',

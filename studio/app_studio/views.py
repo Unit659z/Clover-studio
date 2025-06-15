@@ -35,6 +35,10 @@ from .serializers import (
     ExecutorServiceSerializer, RegisterSerializer, PasswordChangeSerializer 
 )
 
+def trigger_sentry_error(request):
+    division_by_zero = 1 / 0  
+    return HttpResponse("Эта страница намеренно вызывает ошибку для теста Sentry.")
+
 class PasswordChangeView(generics.GenericAPIView):
     """ API View для смены пароля аутентифицированным пользователем. """
     serializer_class = PasswordChangeSerializer

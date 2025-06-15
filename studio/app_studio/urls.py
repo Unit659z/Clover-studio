@@ -39,4 +39,6 @@ urlpatterns = [
     path('cart/', views.cart_detail_placeholder, name='cart_detail'), 
     path('portfolios/<int:pk>/details/', views.portfolio_detail_placeholder, name='portfolio_detail'),
     path('old/orders/<int:pk>/', views.order_detail, name='old_order_detail'),
+
+    path('sentry-test-error/', views.trigger_sentry_error, name='sentry-test-error'),
 ]
