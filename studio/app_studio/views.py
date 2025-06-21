@@ -24,6 +24,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
+from .filters import ServiceFilter
+
 from .permissions import (
     IsOwnerOrReadOnly, IsCartOwner, IsMessageParticipantOrReadOnly,
     IsAdminOrExecutorOrReadOnly, IsPortfolioOwnerOrAdminOrReadOnly, IsAdminOrReadOnly
@@ -239,7 +241,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         Returns:
             CustomUser: Экземпляр модели текущего пользователя.
         """
-        return self.request.user # type: ignore
+        return self.request.user
 
 class GetCSRFTokenView(views.APIView):
     """
@@ -285,7 +287,7 @@ class ServiceViewSet(viewsets.ModelViewSet):
     permission_classes: List[Type[permissions.BasePermission]] = [IsAdminOrExecutorOrReadOnly]
     pagination_class: Type[PageNumberPagination] = StandardResultsSetPagination
     filter_backends: List[Any] = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields: List[str] = ['price', 'duration_hours']
+    filterset_class = ServiceFilter
     search_fields: List[str] = ['name', 'description']
     ordering_fields: List[str] = ['name', 'price', 'created_at', 'duration_hours']
     ordering: List[str] = ['name']
