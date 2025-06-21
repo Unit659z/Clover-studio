@@ -455,7 +455,7 @@ class OrderAdmin(admin.ModelAdmin):
     raw_id_fields: Tuple[str, ...] = ('client', 'executor', 'service', 'status')
     autocomplete_fields: List[str] = ['client', 'executor', 'service', 'status']
     readonly_fields: Tuple[str, ...] = ('created_at', 'pk')
-    list_select_related: Tuple[str, ...] = ('client', 'executor__user', 'service', 'status')
+    # list_select_related: Tuple[str, ...] = ('client', 'executor__user', 'service', 'status')
     actions: List[str] = ['mark_completed', 'mark_processing', 'generate_order_pdf']
     list_per_page: int = 25
     fieldsets: Tuple[Tuple[Optional[str], Dict[str, Any]], ...] = (

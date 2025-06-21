@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Union, Type # Добавляем Type
+from typing import Dict, Any, Optional, List, Union, Type
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -72,7 +72,7 @@ class UserSummarySerializer(serializers.ModelSerializer):
     avatar_url: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model: Type[CustomUser] = CustomUser # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[CustomUser] = CustomUser
         fields: List[str] = ['pk', 'username', 'full_name', 'avatar_url']
 
     def get_avatar_url(self, obj: CustomUser) -> Optional[str]:
@@ -99,7 +99,7 @@ class ExecutorSummarySerializer(serializers.ModelSerializer):
     """
     user: UserSummarySerializer = UserSummarySerializer(read_only=True)
     class Meta:
-        model: Type[Executor] = Executor # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Executor] = Executor
         fields: List[str] = ['pk', 'user', 'specialization']
 
 class ServiceSummarySerializer(serializers.ModelSerializer):
@@ -108,7 +108,7 @@ class ServiceSummarySerializer(serializers.ModelSerializer):
     """
     photo_url: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
     class Meta:
-        model: Type[Service] = Service # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Service] = Service
         fields: List[str] = ['pk', 'name', 'price', 'photo_url']
 
     def get_photo_url(self, obj: Service) -> Optional[str]:
@@ -136,7 +136,7 @@ class OrderStatusSerializer(serializers.ModelSerializer):
     """
     display_name: serializers.CharField = serializers.CharField(source='get_status_name_display', read_only=True)
     class Meta:
-        model: Type[OrderStatus] = OrderStatus # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[OrderStatus] = OrderStatus
         fields: List[str] = ['pk', 'status_name', 'display_name']
 
 class UserSerializer(serializers.ModelSerializer):
@@ -149,7 +149,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_executor: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model: Type[CustomUser] = CustomUser # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[CustomUser] = CustomUser
         fields: List[str] = [
             'pk', 'username', 'email', 'first_name', 'last_name',
             'phone_number', 'date_joined', 'last_login',
@@ -200,7 +200,7 @@ class ServiceSerializer(serializers.ModelSerializer):
     photo_url: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model: Type[Service] = Service # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Service] = Service 
         fields: List[str] = [
             'pk', 'name', 'description', 'price', 'duration_hours',
             'photo', 'photo_url', 'created_at'
@@ -248,7 +248,7 @@ class ExecutorSerializer(serializers.ModelSerializer):
     services: ServiceSummarySerializer = ServiceSummarySerializer(many=True, read_only=True)
 
     class Meta:
-        model: Type[Executor] = Executor # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Executor] = Executor
         fields: List[str] = [
             'pk', 'user', 'specialization', 'experience_years',
             'portfolio_link', 'created_at', 'services'
@@ -266,7 +266,7 @@ class OrderReadSerializer(serializers.ModelSerializer):
     status: OrderStatusSerializer = OrderStatusSerializer(read_only=True)
 
     class Meta:
-        model: Type[Order] = Order # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Order] = Order
         fields: List[str] = [
             'pk', 'client', 'executor', 'service', 'status',
             'created_at', 'scheduled_at', 'completed_at'
@@ -286,7 +286,7 @@ class OrderWriteSerializer(serializers.ModelSerializer):
     scheduled_at: serializers.DateTimeField = serializers.DateTimeField(default=default_scheduled_at, required=False)
 
     class Meta:
-        model: Type[Order] = Order # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Order] = Order
         fields: List[str] = [
             'client', 'executor', 'service', 'status', 'scheduled_at',
         ]
@@ -316,8 +316,8 @@ class OrderWriteSerializer(serializers.ModelSerializer):
                  "executor": f"Исполнитель '{executor}' не предоставляет услугу '{service}'."
              })
 
-        scheduled: Union[timezone.datetime, Any] = data.get('scheduled_at', default_scheduled_at()) # type: ignore
-        if scheduled <= timezone.now(): # type: ignore
+        scheduled: Union[timezone.datetime, Any] = data.get('scheduled_at', default_scheduled_at()) 
+        if scheduled <= timezone.now(): 
              raise serializers.ValidationError({
                  "scheduled_at": "Запланированная дата выполнения должна быть в будущем."
              })
@@ -360,7 +360,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     order_read: serializers.PrimaryKeyRelatedField = serializers.PrimaryKeyRelatedField(source='order', read_only=True)
 
     class Meta:
-        model: Type[Review] = Review # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Review] = Review 
         fields: List[str] = [
             'pk', 'user', 'executor', 'order', 'rating', 'comment', 'created_at',
             'user_read', 'executor_read', 'order_read'
@@ -387,22 +387,22 @@ class ReviewSerializer(serializers.ModelSerializer):
         Raises:
             serializers.ValidationError: Если данные не прошли валидацию.
         """
-        request: Request = self.context.get('request') # type: ignore
-        user: CustomUser = request.user # type: ignore
-        executor: Executor = data.get('executor') # type: ignore
-        order: Optional[Order] = data.get('order') # type: ignore
+        request: Request = self.context.get('request') 
+        user: CustomUser = request.user 
+        executor: Executor = data.get('executor') 
+        order: Optional[Order] = data.get('order') 
 
         if order:
             if order.client != user:
                 raise serializers.ValidationError({"order": "Вы можете оставить отзыв только на свой заказ."})
             if order.executor != executor:
                 raise serializers.ValidationError({"executor": "Исполнитель в отзыве не совпадает с исполнителем заказа."})
-            if order.status and order.status.status_name != 'completed': # type: ignore
+            if order.status and order.status.status_name != 'completed': 
                 raise serializers.ValidationError({"order": "Отзыв можно оставить только на выполненный заказ."})
             if Review.objects.filter(user=user, order=order).exists():
                  raise serializers.ValidationError({"order": "Вы уже оставили отзыв на этот заказ."})
 
-        if executor.user == user: # type: ignore
+        if executor.user == user: 
              raise serializers.ValidationError({"executor": "Нельзя оставить отзыв на самого себя."})
 
         return data
@@ -416,7 +416,7 @@ class NewsSerializer(serializers.ModelSerializer):
     pdf_file_url: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model: Type[News] = News # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[News] = News 
         fields: List[str] = ['pk', 'title', 'content', 'published_at', 'author', 'pdf_file', 'pdf_file_url']
         read_only_fields: List[str] = ['pk', 'author', 'pdf_file_url']
         extra_kwargs: Dict[str, Dict[str, Any]] = {
@@ -449,7 +449,7 @@ class PortfolioSerializer(serializers.ModelSerializer):
     image_url: serializers.SerializerMethodField = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model: Type[Portfolio] = Portfolio # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Portfolio] = Portfolio 
         fields: List[str] = [
             'pk', 'executor', 'title',
             'image', 'image_url',
@@ -494,7 +494,7 @@ class CartItemSerializer(serializers.ModelSerializer):
     total_cost: serializers.DecimalField = serializers.DecimalField(source='get_cost', max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
-        model: Type[CartItem] = CartItem # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[CartItem] = CartItem 
         fields: List[str] = ['pk', 'service', 'service_id', 'quantity', 'added_at', 'total_cost']
         read_only_fields: List[str] = ['pk', 'added_at', 'service', 'total_cost']
         extra_kwargs: Dict[str, Dict[str, Any]] = {
@@ -514,7 +514,7 @@ class CartSerializer(serializers.ModelSerializer):
     user: UserSummarySerializer = UserSummarySerializer(read_only=True)
 
     class Meta:
-        model: Type[Cart] = Cart # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Cart] = Cart 
         fields: List[str] = [
             'pk', 'user', 'items', 'created_at', 'updated_at',
             'total_cost', 'total_items_count', 'total_positions_count'
@@ -531,7 +531,7 @@ class MessageSerializer(serializers.ModelSerializer):
     receiver_read: UserSummarySerializer = UserSummarySerializer(source='receiver', read_only=True)
 
     class Meta:
-        model: Type[Message] = Message # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[Message] = Message 
         fields: List[str] = [
             'pk', 'sender', 'receiver', 'receiver_read', 'content',
             'sent_at', 'is_read'
@@ -586,7 +586,7 @@ class ExecutorServiceSerializer(serializers.ModelSerializer):
     effective_price: serializers.DecimalField = serializers.DecimalField(source='get_effective_price', max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
-        model: Type[ExecutorService] = ExecutorService # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[ExecutorService] = ExecutorService 
         fields: List[str] = [
             'pk', 'executor', 'service', 'custom_price', 'effective_price',
             'executor_id', 'service_id'
@@ -622,7 +622,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     email: serializers.EmailField = serializers.EmailField(required=True)
 
     class Meta:
-        model: Type[CustomUser] = CustomUser # ИЗМЕНЕНИЕ ЗДЕСЬ
+        model: Type[CustomUser] = CustomUser
         fields: List[str] = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'phone_number']
         extra_kwargs: Dict[str, Dict[str, Any]] = {
             'password': {'write_only': True, 'style': {'input_type': 'password'}},

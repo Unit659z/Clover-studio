@@ -366,7 +366,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         Возвращает QuerySet заказов, отфильтрованный для текущего пользователя.
         Администраторы видят все заказы. Клиенты/исполнители видят только свои.
         """
-        user: CustomUser = self.request.user # type: ignore
+        user: CustomUser = self.request.user 
         if user.is_staff:
             return Order.objects.select_related(
                 'client', 'executor__user', 'service', 'status'
@@ -537,9 +537,9 @@ class PortfolioViewSet(viewsets.ModelViewSet):
          Raises:
              PermissionDenied: Если пользователь не исполнитель или администратор пытается создать без указания исполнителя.
          """
-         user: CustomUser = self.request.user # type: ignore
-         if hasattr(user, 'executor_profile') and user.executor_profile: # type: ignore
-             serializer.save(executor=user.executor_profile) # type: ignore
+         user: CustomUser = self.request.user 
+         if hasattr(user, 'executor_profile') and user.executor_profile: 
+             serializer.save(executor=user.executor_profile) 
          elif user.is_staff:
              raise PermissionDenied("Администратор не может создавать портфолио без указания исполнителя.")
          else:
@@ -823,7 +823,7 @@ def service_list(request: HttpRequest) -> HttpResponse:
     if search_query:
         services_qs = services_qs.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
 
-    services_with_duration: DjangoQuerySet[Service] = services_qs.annotate_duration_info().order_by('-created_at') # type: ignore
+    services_with_duration: DjangoQuerySet[Service] = services_qs.annotate_duration_info().order_by('-created_at')
     
     context: Dict[str, Any] = {
         'services': services_with_duration,
