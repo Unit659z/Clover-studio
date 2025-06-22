@@ -14,12 +14,18 @@ import {
   PaginatedResponse,
 } from "../interfaces";
 
+interface StatsData {
+  total_users: number;
+  completed_orders: number;
+}
+
 const placeholderServiceImage = "/images/placeholder-service.png";
 
 const HomePage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,23 +34,13 @@ const HomePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const [serviceResponse, portfolioResponse, reviewResponse] =
-          await Promise.all([
-            // Загружаем БОЛЬШЕ элементов, чем будет видно сразу, чтобы карусель имела смысл
-            axios.get<PaginatedResponse<Service>>(
-              "/studio/api/services/?page_size=6"
-            ),
-            axios.get<PaginatedResponse<PortfolioItem>>(
-              "/studio/api/portfolios/?page_size=4"
-            ),
-            axios.get<PaginatedResponse<Review>>(
-              "/studio/api/reviews/?page_size=6"
-            ),
-          ]);
+        const response = await axios.get('/studio/api/home-page-data/');
 
-        setServices(serviceResponse.data.results);
-        setPortfolioItems(portfolioResponse.data.results);
-        setReviews(reviewResponse.data.results);
+        setServices(response.data.services);
+        setPortfolioItems(response.data.portfolio_items);
+        setReviews(response.data.reviews);
+        setStats(response.data.stats);
+
       } catch (err: any) {
         console.error("Error fetching data:", err);
         setError(
@@ -105,6 +101,21 @@ const HomePage: React.FC = () => {
             </p>
           </div>
         </section>
+
+        {stats && (
+            <section className="mb-16 md:mb-24 bg-[#181818] py-8 px-4 rounded-lg shadow-xl border border-gray-800">
+                <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                    <div>
+                        <p className="text-4xl lg:text-5xl font-bold text-[#EB0000]">{stats.total_users}</p>
+                        <p className="text-gray-400 mt-2">Зарегистрированных пользователей</p>
+                    </div>
+                    <div>
+                        <p className="text-4xl lg:text-5xl font-bold text-[#EB0000]">{stats.completed_orders}</p>
+                        <p className="text-gray-400 mt-2">Выполненных заказов</p>
+                    </div>
+                </div>
+            </section>
+        )}
 
         {/* Services Section */}
         <section

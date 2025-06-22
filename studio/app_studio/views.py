@@ -13,6 +13,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.contrib.auth import update_session_auth_hash
 from django.conf import settings 
+from django.db.models import Max, Prefetch
 
 from rest_framework import views, permissions, status, generics, serializers as drf_serializers
 from rest_framework.request import Request 
@@ -36,7 +37,7 @@ from .models import (
 )
 from .serializers import (
     ServiceSerializer, ExecutorSerializer, OrderReadSerializer, OrderWriteSerializer,
-    NewsSerializer, PortfolioSerializer, ReviewSerializer, OrderStatusSerializer,
+    NewsSerializer, PortfolioSerializer, ReviewSerializer, OrderStatusSerializer, ServiceSummarySerializer,
     UserSerializer, CartSerializer, CartItemSerializer, MessageSerializer,
     ExecutorServiceSerializer, RegisterSerializer, PasswordChangeSerializer
 )
@@ -858,6 +859,56 @@ def order_detail(request: HttpRequest, pk: int) -> HttpResponse:
         'related_orders': related_orders,
     }
     return render(request, 'app_studio/order_detail.html', context)
+
+class HomePageDataView(views.APIView):
+    """
+    API View для агрегации данных, необходимых для главной страницы.
+    Собирает в одном ответе последние услуги, портфолио, отзывы и общую статистику.
+    Доступен всем пользователям.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """
+        Обрабатывает GET-запрос и возвращает скомпонованные данные для главной страницы.
+        """
+        latest_services = Service.objects.all().order_by('-created_at')[:6]
+
+        executors_with_portfolio = Executor.objects.filter(portfolios__isnull=False).distinct()
+        
+        portfolio_pks = []
+        for executor in executors_with_portfolio:
+            latest_work = executor.portfolios.exclude(description__exact='').order_by('-uploaded_at').first()
+            if latest_work:
+                portfolio_pks.append(latest_work.pk)
+
+        portfolio_pks = portfolio_pks[:4]
+        
+        featured_portfolio = Portfolio.objects.filter(pk__in=portfolio_pks).select_related('executor__user')
+
+        positive_reviews = Review.objects.filter(rating__gte=4).select_related(
+            'user', 'executor__user'
+        ).order_by('-created_at')[:6]
+        
+        total_users = CustomUser.objects.count()
+        completed_orders_count = Order.objects.filter(status__status_name='completed').count()
+
+
+        services_serializer = ServiceSummarySerializer(latest_services, many=True, context={'request': request})
+        portfolio_serializer = PortfolioSerializer(featured_portfolio, many=True, context={'request': request})
+        reviews_serializer = ReviewSerializer(positive_reviews, many=True, context={'request': request})
+
+        data = {
+            'services': services_serializer.data,
+            'portfolio_items': portfolio_serializer.data,
+            'reviews': reviews_serializer.data,
+            'stats': {
+                'total_users': total_users,
+                'completed_orders': completed_orders_count,
+            }
+        }
+        
+        return Response(data)
 
 
 def user_detail_placeholder(request: HttpRequest, pk: int) -> HttpResponse:

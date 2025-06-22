@@ -18,8 +18,9 @@ router.register(r'messages', views.MessageViewSet, basename='message-api')
 
 
 urlpatterns = [
-    path('api/', include(router.urls)), # Все API URL теперь /studio/api/...
+    path('api/', include(router.urls)),
     
+    path('api/home-page-data/', views.HomePageDataView.as_view(), name='home-page-data-api'),
     path('api/auth/login/', views.LoginView.as_view(), name='api-login'),
     path('api/auth/logout/', views.LogoutView.as_view(), name='api-logout'),
     path('api/auth/status/', views.SessionStatusView.as_view(), name='api-session-status'),

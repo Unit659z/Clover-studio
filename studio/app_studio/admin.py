@@ -378,12 +378,12 @@ class ExecutorAdmin(admin.ModelAdmin):
     date_hierarchy: str = 'created_at'
     raw_id_fields: Tuple[str, ...] = ('user',)
     autocomplete_fields: List[str] = ['user']
-    readonly_fields: Tuple[str, ...] = ('created_at', 'user_link', 'portfolio_count', 'service_count')
+    readonly_fields: Tuple[str, ...] = ('created_at',  'portfolio_count', 'service_count')
     list_select_related: Tuple[str, ...] = ('user',)
     list_prefetch_related: Tuple[str, ...] = ('portfolios', 'services')
     list_per_page: int = 20
     fieldsets: Tuple[Tuple[Optional[str], Dict[str, Any]], ...] = (
-        (None, {'fields': ('user_link', 'specialization', 'experience_years', 'portfolio_link')}),
+        (None, {'fields': ('user', 'specialization', 'experience_years', 'portfolio_link')}),
         ('Метаданные', {'classes': ('collapse',), 'fields': ('created_at',)})
     )
 
@@ -455,7 +455,7 @@ class OrderAdmin(admin.ModelAdmin):
     raw_id_fields: Tuple[str, ...] = ('client', 'executor', 'service', 'status')
     autocomplete_fields: List[str] = ['client', 'executor', 'service', 'status']
     readonly_fields: Tuple[str, ...] = ('created_at', 'pk')
-    # list_select_related: Tuple[str, ...] = ('client', 'executor__user', 'service', 'status')
+    list_select_related: Tuple[str, ...] = ('client', 'executor__user', 'service', 'status')
     actions: List[str] = ['mark_completed', 'mark_processing', 'generate_order_pdf']
     list_per_page: int = 25
     fieldsets: Tuple[Tuple[Optional[str], Dict[str, Any]], ...] = (
