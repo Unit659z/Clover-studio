@@ -25,7 +25,7 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
 
 from .models import (
     CustomUser, Executor, OrderStatus, Order, Review, News, Message,
-    Service, CostCalculator, Cart, CartItem, Portfolio, ExecutorService
+    Service, CostCalculator, Cart, CartItem, Portfolio, ExecutorService, AZExam
 )
 
 
@@ -1131,3 +1131,33 @@ class ExecutorServiceAdmin(admin.ModelAdmin):
         """Отображает фактическую цену услуги для данного исполнителя."""
         price: Optional[Union[Decimal, int]] = obj.get_effective_price() 
         return f"{price} руб." if price is not None else "N/A"
+    
+@admin.register(AZExam)
+class AZExamAdmin(admin.ModelAdmin):
+    """
+    Конфигурация админ-панели для модели AZExam.
+    """
+    search_fields = ('name', 'students__email')
+    
+    date_hierarchy = 'exam_date'
+    
+    filter_horizontal = ('students',)
+    
+    list_filter = ('is_public', 'created_at')
+    
+    list_display = ('name', 'exam_date', 'is_public', 'student_count', 'created_at')
+    list_display_links = ('name',)
+    list_per_page = 20
+    
+    def get_queryset(self, request):
+        """Оптимизируем запрос, аннотируя количество студентов."""
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(
+            _student_count=Count('students', distinct=True)
+        )
+        return queryset
+
+    @admin.display(description='Кол-во студентов', ordering='_student_count')
+    def student_count(self, obj):
+        """Отображает количество студентов, назначенных на экзамен."""
+        return obj._student_count
