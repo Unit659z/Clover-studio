@@ -33,13 +33,13 @@ from .permissions import (
 )
 from .models import (
     Service, Order, CustomUser, Executor, OrderStatus, News, Cart, CostCalculator,
-    Portfolio, Review, Message, CartItem, ExecutorService
+    Portfolio, Review, Message, CartItem, ExecutorService, AZExam
 )
 from .serializers import (
     ServiceSerializer, ExecutorSerializer, OrderReadSerializer, OrderWriteSerializer,
     NewsSerializer, PortfolioSerializer, ReviewSerializer, OrderStatusSerializer, ServiceSummarySerializer,
     UserSerializer, CartSerializer, CartItemSerializer, MessageSerializer,
-    ExecutorServiceSerializer, RegisterSerializer, PasswordChangeSerializer
+    ExecutorServiceSerializer, RegisterSerializer, PasswordChangeSerializer, AZExamSerializer
 )
 
 
@@ -942,3 +942,18 @@ def service_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """Заглушка для детальной страницы услуги."""
     service: Service = get_object_or_404(Service, pk=pk)
     return HttpResponse(f"Детали услуги (заглушка): {service.name} (PK={pk})")
+
+class AZExamViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API эндпоинт для просмотра опубликованных экзаменов.
+    Предоставляет только операции чтения (list и retrieve).
+    """
+    serializer_class = AZExamSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        """
+        Возвращает только опубликованные экзамены (is_public=True).
+        """
+        return AZExam.objects.filter(is_public=True).prefetch_related('students')
+    

@@ -15,6 +15,7 @@ router.register(r'portfolios', views.PortfolioViewSet, basename='portfolio-api')
 router.register(r'reviews', views.ReviewViewSet, basename='review-api')
 router.register(r'order-statuses', views.OrderStatusViewSet, basename='orderstatus-api')
 router.register(r'messages', views.MessageViewSet, basename='message-api')
+router.register(r'azexam', views.AZExamViewSet, basename='azexam-api')
 
 
 urlpatterns = [

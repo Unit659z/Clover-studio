@@ -84,6 +84,14 @@ const Header: React.FC = () => {
               Отзывы
             </a>
           </li>{" "}
+          <li>
+            <Link
+              to="/azexam"
+              className="text-yellow-400 hover:text-yellow-300 font-semibold"
+            >
+              Экзамен
+            </Link>
+          </li>
         </ul>
         {/* --- Правая часть хедера: Иконка бургера и блок с кнопками/пользователем для десктопа --- */}
         <div className="flex items-center space-x-2">
@@ -275,6 +283,15 @@ const Header: React.FC = () => {
             >
               Отзывы
             </a>
+          </li>
+          <li>
+            <Link
+              to="/azexam"
+              onClick={toggleMobileMenu}
+              className="block py-2.5 text-yellow-400 hover:text-yellow-300 font-semibold w-full text-center"
+            >
+              Экзамен
+            </Link>
           </li>
           <hr className="w-3/4 border-gray-600 my-2" />
           {isAuthenticated && currentUser ? (

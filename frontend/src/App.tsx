@@ -13,6 +13,7 @@ import PasswordChangePage from "./pages/PasswordChangePage";
 import CartPage from "./pages/CartPage";
 import NotificationCenter from "./components/NotificationCenter";
 import NewsPage from "./pages/NewsPage";
+import ExamPage from "./pages/ExamPage";
 import "./index.css";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/portfolio/:pk" element={<PortfolioDetailPage />} />
         <Route path="/news" element={<NewsPage />} />
+        <Route path="/azexam" element={<ExamPage />} />
         {/* Приватные маршруты */}
         <Route element={<PrivateRoute />}>
           <Route path="/account" element={<AccountPage />} />

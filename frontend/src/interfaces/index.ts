@@ -122,3 +122,13 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+export interface Exam {
+  pk: number;
+  name: string;
+  created_at: string;
+  exam_date: string;
+  image_url: string | null;
+  students: UserSummary[];
+  is_public: boolean;
+}

@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import (
     Service, CostCalculator, Executor, CustomUser, Order,
     OrderStatus, Review, News, Message, Cart, CartItem, Portfolio,
-    ExecutorService, default_scheduled_at
+    ExecutorService, default_scheduled_at, AZExam
 )
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -708,3 +708,31 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+    
+class AZExamSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели AZExam.
+    """
+    students = UserSummarySerializer(many=True, read_only=True)
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AZExam
+        fields = [
+            'pk',
+            'name',
+            'created_at',
+            'exam_date',
+            'image_url',
+            'students',
+            'is_public'
+        ]
+
+    def get_image_url(self, obj):
+        """
+        Возвращает абсолютный URL изображения экзамена.
+        """
+        request = self.context.get('request')
+        if obj.image and hasattr(obj.image, 'url') and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
