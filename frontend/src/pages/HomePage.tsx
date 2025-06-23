@@ -11,7 +11,6 @@ import {
   Service,
   PortfolioItem,
   Review,
-  PaginatedResponse,
 } from "../interfaces";
 
 interface StatsData {

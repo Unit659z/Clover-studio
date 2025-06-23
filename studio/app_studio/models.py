@@ -764,3 +764,47 @@ class ExecutorService(models.Model):
         if self.executor_id:
             return self.executor.get_absolute_url()
         return '#'
+    
+class AZExam(models.Model):
+    """
+    Модель для хранения информации об экзаменах и пользователях.
+    """
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Название экзамена"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания записи"
+    )
+    exam_date = models.DateTimeField(
+        verbose_name="Дата проведения экзамена"
+    )
+    image = models.ImageField(
+        upload_to='exams/images/',
+        blank=True,
+        null=True,
+        verbose_name="Изображение (задание)"
+    )
+    students = models.ManyToManyField(
+        CustomUser,
+        related_name="exams_assigned",
+        verbose_name="Студенты на экзамене",
+        blank=True
+    )
+    is_public = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Опубликовано"
+    )
+
+    class Meta:
+        verbose_name = "Экзамен"
+        verbose_name_plural = "Экзамены"
+        ordering = ['-exam_date']
+
+    def __str__(self):
+        """
+        Возвращает строковое представление модели.
+        """
+        return f"Экзамен: {self.name} ({self.exam_date.strftime('%d.%m.%Y')})"
