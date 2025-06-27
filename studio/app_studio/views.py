@@ -890,8 +890,15 @@ class HomePageDataView(views.APIView):
             'user', 'executor__user'
         ).order_by('-created_at')[:6]
         
-        total_users = CustomUser.objects.count()
-        completed_orders_count = Order.objects.filter(status__status_name='completed').count()
+        user_stats = CustomUser.objects.aggregate(
+        total_users=Count('id')
+        )
+        total_users = user_stats['total_users'] if user_stats else 0
+
+        completed_orders_stats = Order.objects.filter(status__status_name='completed').aggregate(
+        completed_count=Count('id')
+        )
+        completed_orders_count = completed_orders_stats['completed_count'] if completed_orders_stats else 0
 
 
         services_serializer = ServiceSummarySerializer(latest_services, many=True, context={'request': request})
